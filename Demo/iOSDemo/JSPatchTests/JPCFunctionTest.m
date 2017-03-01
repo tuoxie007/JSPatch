@@ -12,6 +12,11 @@
 
 static bool voidFuncRet = false;
 
+id cfuncWithStruct(NSString *str, UIEdgeInsets insets){
+    NSLog(@"UIEdgeInsets: %g, %g, %g, %g", insets.top, insets.bottom, insets.left, insets.right);
+    return str;
+}
+
 id cfuncWithId(NSString *str){
     return str;
 }
