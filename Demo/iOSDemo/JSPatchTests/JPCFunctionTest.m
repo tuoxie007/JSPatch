@@ -12,6 +12,16 @@
 
 static bool voidFuncRet = false;
 
+id cfuncWithStructPadding(NSString *str, JPStructPadding strt){
+    NSLog(@"JPStructPacking: %c, %d", strt.ch, strt.num);
+    return str;
+}
+
+id cfuncWithStructPacking(NSString *str, JPStructPacking strt){
+    NSLog(@"JPStructPacking: %c, %d", strt.ch, strt.num);
+    return str;
+}
+
 id cfuncWithStruct(NSString *str, UIEdgeInsets insets){
     NSLog(@"UIEdgeInsets: %g, %g, %g, %g", insets.top, insets.bottom, insets.left, insets.right);
     return str;

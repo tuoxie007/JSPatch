@@ -8,6 +8,22 @@
 
 #import <Foundation/Foundation.h>
 
+struct JPStructPadding {
+    char ch;
+    int num;
+};
+
+typedef struct JPStructPadding JPStructPadding;
+
+struct JPStructPacking {
+    char ch;
+    int num;
+} __attribute__((packed));
+
+typedef struct JPStructPacking JPStructPacking;
+
+id cfuncWithStructPacking(NSString *str, JPStructPacking strt);
+
 @interface JPCFunctionTest : NSObject
 + (BOOL)testCfuncWithId;
 + (BOOL)testCfuncWithInt;

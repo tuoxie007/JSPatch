@@ -73,7 +73,7 @@
         @synchronized (weakCtx) {
             NSDictionary *structDefine = [JPExtension registeredStruct][typeName];
             if (structDefine) {
-                return [self sizeOfStructTypes:structDefine[@"types"]];
+                return [self sizeOfStructDefine:structDefine];
             }
         }
         return 0;

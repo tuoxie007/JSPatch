@@ -77,7 +77,7 @@
 + (id)formatJSToOC:(JSValue *)val;
 + (id)formatOCToJS:(id)obj;
 
-+ (int)sizeOfStructTypes:(NSString *)structTypes;
++ (int)sizeOfStructDefine:(NSDictionary *)structDefine;
 + (void)getStructDataWidthDict:(void *)structData dict:(NSDictionary *)dict structDefine:(NSDictionary *)structDefine;
 + (NSDictionary *)getDictOfStruct:(void *)structData structDefine:(NSDictionary *)structDefine;
 

@@ -28,7 +28,7 @@
         @synchronized (weakCtx) {
             NSDictionary *structDefine = [JPExtension registeredStruct][structName];
             if (structDefine) {
-                int size = [self sizeOfStructTypes:structDefine[@"types"]];
+                int size = [self sizeOfStructDefine:structDefine];
                 void *ret = malloc(size);
                 memset(ret, 0, size);
                 [self getStructDataWidthDict:ret dict:[structDict toObject] structDefine:structDefine];

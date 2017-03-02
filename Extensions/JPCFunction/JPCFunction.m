@@ -181,8 +181,7 @@ void ConvertObjCValueToFFIValue(NSString *objcType, id objcVal, void **ffiVal)
         NSDictionary *registedStruct = [JPExtension registeredStruct];
         NSString *structName = [objcType substringWithRange:NSMakeRange(1, objcType.length - 2)];
         NSDictionary *structDefine = registedStruct[structName];
-        NSString *structTypesStr = structDefine[@"types"];
-        size_t size = [JPExtension sizeOfStructTypes:structTypesStr];
+        size_t size = [JPExtension sizeOfStructDefine:structDefine];
         *ffiVal = malloc(size);
         [JPExtension getStructDataWidthDict:*ffiVal dict:objcVal structDefine:structDefine];
     }

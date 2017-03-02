@@ -390,8 +390,50 @@ static void (^_exceptionBlock)(NSString *log) = ^void(NSString *log) {
 + (void)defineStruct:(NSDictionary *)defineDict
 {
     @synchronized (_context) {
-        [_registeredStruct setObject:defineDict forKey:defineDict[@"name"]];
+        NSUInteger alignment = [self alignmentOfStructTypes:defineDict[@"types"]];
+        NSMutableDictionary *mDict = defineDict.mutableCopy;
+        mDict[@"alignment"] = @(alignment);
+        [_registeredStruct setObject:mDict forKey:mDict[@"name"]];
     }
+}
+
++ (NSUInteger)alignmentOfStructTypes:(NSString *)structTypes
+{
+    const char * encodedChars = [structTypes cStringUsingEncoding:NSASCIIStringEncoding];
+    int index = 0;
+    NSUInteger align = 0;
+    while (encodedChars[index]) {
+        switch (encodedChars[index]) {
+#define JP_STRUCT_ALIGN_CASE(_typeChar, type) \
+            case _typeChar: \
+            align = MAX(align, sizeof(type)); \
+            break; \
+
+            JP_STRUCT_ALIGN_CASE('c', char)
+            JP_STRUCT_ALIGN_CASE('C', unsigned char)
+            JP_STRUCT_ALIGN_CASE('s', short)
+            JP_STRUCT_ALIGN_CASE('S', unsigned short)
+            JP_STRUCT_ALIGN_CASE('i', int)
+            JP_STRUCT_ALIGN_CASE('I', unsigned int)
+            JP_STRUCT_ALIGN_CASE('l', long)
+            JP_STRUCT_ALIGN_CASE('L', unsigned long)
+            JP_STRUCT_ALIGN_CASE('q', long long)
+            JP_STRUCT_ALIGN_CASE('Q', unsigned long long)
+            JP_STRUCT_ALIGN_CASE('f', float)
+            JP_STRUCT_ALIGN_CASE('F', CGFloat)
+            JP_STRUCT_ALIGN_CASE('N', NSInteger)
+            JP_STRUCT_ALIGN_CASE('U', NSUInteger)
+            JP_STRUCT_ALIGN_CASE('d', double)
+            JP_STRUCT_ALIGN_CASE('B', BOOL)
+            JP_STRUCT_ALIGN_CASE('*', void *)
+            JP_STRUCT_ALIGN_CASE('^', void *)
+            
+            default:
+            break;
+        }
+        index ++;
+    }
+    return align;
 }
 
 + (void)handleMemoryWarning {
@@ -727,7 +769,7 @@ static void JPForwardInvocation(__unsafe_unretained id assignSlf, SEL selector, 
                 @synchronized (_context) {
                     NSDictionary *structDefine = _registeredStruct[typeString];
                     if (structDefine) {
-                        size_t size = sizeOfStructTypes(structDefine[@"types"]);
+                        size_t size = sizeOfStructDefine(structDefine);
                         if (size) {
                             void *ret = malloc(size);
                             [invocation getArgument:ret atIndex:i];
@@ -888,7 +930,7 @@ static void JPForwardInvocation(__unsafe_unretained id assignSlf, SEL selector, 
             @synchronized (_context) {
                 NSDictionary *structDefine = _registeredStruct[typeString];
                 if (structDefine) {
-                    size_t size = sizeOfStructTypes(structDefine[@"types"]);
+                    size_t size = sizeOfStructDefine(structDefine);
                     JP_FWD_RET_CALL_JS
                     void *ret = malloc(size);
                     NSDictionary *dict = formatJSToOC(jsval);
@@ -1155,7 +1197,7 @@ static id callSelector(NSString *className, NSString *selectorName, JSValue *arg
                 @synchronized (_context) {
                     NSDictionary *structDefine = _registeredStruct[typeString];
                     if (structDefine) {
-                        size_t size = sizeOfStructTypes(structDefine[@"types"]);
+                        size_t size = sizeOfStructDefine(structDefine);
                         void *ret = malloc(size);
                         getStructDataWithDict(ret, valObj, structDefine);
                         [invocation setArgument:ret atIndex:i];
@@ -1303,7 +1345,7 @@ static id callSelector(NSString *className, NSString *selectorName, JSValue *arg
                     @synchronized (_context) {
                         NSDictionary *structDefine = _registeredStruct[typeString];
                         if (structDefine) {
-                            size_t size = sizeOfStructTypes(structDefine[@"types"]);
+                            size_t size = sizeOfStructDefine(structDefine);
                             void *ret = malloc(size);
                             [invocation getReturnValue:ret];
                             NSDictionary *dict = getDictOfStruct(ret, structDefine);
@@ -1453,11 +1495,17 @@ static id genCallbackBlock(JSValue *jsVal)
 
 #pragma mark - Struct
 
-static int sizeOfStructTypes(NSString *structTypes)
+static int sizeOfStructDefine(NSDictionary *structDefine)
 {
+    NSString *structTypes = structDefine[@"types"];
     const char *types = [structTypes cStringUsingEncoding:NSUTF8StringEncoding];
     int index = 0;
     int size = 0;
+    size_t alignment = [structDefine[@"alignment"] unsignedIntegerValue];
+    if (alignment) {
+        return (int)(alignment * strlen(types));
+    }
+    index = 0;
     while (types[index]) {
         switch (types[index]) {
             #define JP_STRUCT_SIZE_CASE(_typeChar, _type)   \
@@ -1496,6 +1544,7 @@ static void getStructDataWithDict(void *structData, NSDictionary *dict, NSDictio
 {
     NSArray *itemKeys = structDefine[@"keys"];
     const char *structTypes = [structDefine[@"types"] cStringUsingEncoding:NSUTF8StringEncoding];
+    size_t alignment = [structDefine[@"alignment"] unsignedIntegerValue];
     int position = 0;
     for (int i = 0; i < itemKeys.count; i ++) {
         switch(structTypes[i]) {
@@ -1504,7 +1553,7 @@ static void getStructDataWithDict(void *structData, NSDictionary *dict, NSDictio
                 int size = sizeof(_type);    \
                 _type val = [dict[itemKeys[i]] _transMethod];   \
                 memcpy(structData + position, &val, size);  \
-                position += size;    \
+                position += alignment ?: size;    \
                 break;  \
             }
                 
@@ -1533,7 +1582,7 @@ static void getStructDataWithDict(void *structData, NSDictionary *dict, NSDictio
                 val = [dict[itemKeys[i]] floatValue];
                 #endif
                 memcpy(structData + position, &val, size);
-                position += size;
+                position += alignment ?: size;
                 break;
             }
             
@@ -1542,9 +1591,9 @@ static void getStructDataWithDict(void *structData, NSDictionary *dict, NSDictio
                 int size = sizeof(void *);
                 void *val = [(JPBoxing *)dict[itemKeys[i]] unboxPointer];
                 memcpy(structData + position, &val, size);
+                position += alignment ?: size;
                 break;
             }
-            
         }
     }
 }
@@ -1554,6 +1603,7 @@ static NSDictionary *getDictOfStruct(void *structData, NSDictionary *structDefin
     NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
     NSArray *itemKeys = structDefine[@"keys"];
     const char *structTypes = [structDefine[@"types"] cStringUsingEncoding:NSUTF8StringEncoding];
+    size_t alignment = [structDefine[@"alignment"] unsignedIntegerValue];
     int position = 0;
     
     for (int i = 0; i < itemKeys.count; i ++) {
@@ -1565,7 +1615,7 @@ static NSDictionary *getDictOfStruct(void *structData, NSDictionary *structDefin
                 memcpy(val, structData + position, size);   \
                 [dict setObject:@(*val) forKey:itemKeys[i]];    \
                 free(val);  \
-                position += size;   \
+                position += alignment ?: size;   \
                 break;  \
             }
             JP_STRUCT_DICT_CASE('c', char)
@@ -1591,10 +1641,9 @@ static NSDictionary *getDictOfStruct(void *structData, NSDictionary *structDefin
                 void *val = malloc(size);
                 memcpy(val, structData + position, size);
                 [dict setObject:[JPBoxing boxPointer:val] forKey:itemKeys[i]];
-                position += size;
+                position += alignment ?: size;
                 break;
             }
-            
         }
     }
     return dict;
@@ -1784,9 +1833,9 @@ static id _unboxOCObjectToJS(id obj)
     return [context[@"_formatOCToJS"] callWithArguments:@[formatOCToJS(obj)]];
 }
 
-+ (int)sizeOfStructTypes:(NSString *)structTypes
++ (int)sizeOfStructDefine:(NSDictionary *)structDefine
 {
-    return sizeOfStructTypes(structTypes);
+    return sizeOfStructDefine(structDefine);
 }
 
 + (void)getStructDataWidthDict:(void *)structData dict:(NSDictionary *)dict structDefine:(NSDictionary *)structDefine
