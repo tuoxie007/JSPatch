@@ -427,7 +427,7 @@ static void (^_exceptionBlock)(NSString *log) = ^void(NSString *log) {
             JP_STRUCT_ALIGN_CASE('B', BOOL)
             JP_STRUCT_ALIGN_CASE('*', void *)
             JP_STRUCT_ALIGN_CASE('^', void *)
-            
+
             default:
             break;
         }

@@ -8,6 +8,7 @@
 
 #import "JPTestObject.h"
 #import <objc/runtime.h>
+#import "JPCFunctionTest.h"
 
 @implementation JPTestObject
 - (void)funcReturnVoid
@@ -190,6 +191,15 @@ typedef id (^JPTestObjectBlock)(NSDictionary *dict, UIView *view);
 - (ISTestBlock)funcReturnJSBlock:(ISTestBlock)jsblock
 {
     return jsblock;
+}
+
+- (void)callBlockWithStringAndStruct:(id(^)(NSString *str, JPStructPadding strt))block
+{
+    JPStructPadding strt;
+    strt.ch = 'X';
+    strt.num = 233;
+    id ret = block(@"stringFromOC", strt);
+    self.callBlockWithStringAndIntReturnValuePassed = [ret isEqualToString:@"succ"];
 }
 
 - (void)callBlockWithStringAndInt:(id(^)(NSString *str, int num))block

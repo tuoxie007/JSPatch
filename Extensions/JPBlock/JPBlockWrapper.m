@@ -78,37 +78,90 @@ void JPBlockInterpreter(ffi_cif *cif, void *ret, void **args, void *userdata)
     JPBlockWrapper *blockObj = (__bridge JPBlockWrapper*)userdata;
     
     NSMutableArray *params = [[NSMutableArray alloc] init];
-    for (int i = 1; i < blockObj.signature.argumentTypes.count; i ++) {
+    NSString *types = blockObj.signature.typeNames;
+    NSMutableArray<NSString *> *funcArgTypes = [types componentsSeparatedByString:@","].mutableCopy;
+    for (NSInteger i=0; i<funcArgTypes.count; i++) {
+        funcArgTypes[i] = [funcArgTypes[i] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    }
+    for (int i = 1; i < funcArgTypes.count; i ++) {
         id param;
         void *argumentPtr = args[i];
-        const char *typeEncoding = [blockObj.signature.argumentTypes[i] UTF8String];
-        switch (typeEncoding[0]) {
-                
-        #define JP_BLOCK_PARAM_CASE(_typeString, _type, _selector) \
-            case _typeString: {                              \
-                _type returnValue = *(_type *)argumentPtr;                     \
-                param = [NSNumber _selector:returnValue];\
-                break; \
+        NSString *type = funcArgTypes[i];
+        if ([type hasPrefix:@"{"] && [type hasSuffix:@"}"]) {
+            // struct
+            NSString *structName = [type substringWithRange:NSMakeRange(1, type.length-2)];
+            NSDictionary *structDefine = [JPExtension registeredStruct][structName];
+            if (structDefine) {
+                NSMutableDictionary *structDict = @{}.mutableCopy;
+                NSString *structTypesStr = structDefine[@"types"];
+                NSArray *structTypeKeys = structDefine[@"keys"];
+                const char *typeCodes = [structTypesStr cStringUsingEncoding:NSASCIIStringEncoding];
+                NSUInteger index = 0;
+                NSUInteger position = 0;
+                NSUInteger alignment = [structDefine[@"alignment"] unsignedIntegerValue];
+                while (typeCodes[index]) {
+                    switch (typeCodes[index]) {
+                        #define JP_PARSE_STRUCT_DATA_CASE(_encode, _type, _selector) \
+                            case _encode: { \
+                                size_t size = sizeof(_type); \
+                                _type *val = malloc(size); \
+                                memcpy(val, argumentPtr+position, size); \
+                                position += alignment ?: size; \
+                                structDict[structTypeKeys[index]] = [NSNumber _selector:*val]; \
+                                break; \
+                            }
+
+                        JP_PARSE_STRUCT_DATA_CASE('c', char, numberWithChar)
+                        JP_PARSE_STRUCT_DATA_CASE('C', unsigned char, numberWithUnsignedChar)
+                        JP_PARSE_STRUCT_DATA_CASE('s', short, numberWithShort)
+                        JP_PARSE_STRUCT_DATA_CASE('S', unsigned short, numberWithUnsignedShort)
+                        JP_PARSE_STRUCT_DATA_CASE('i', int, numberWithInt)
+                        JP_PARSE_STRUCT_DATA_CASE('I', unsigned int, numberWithUnsignedInt)
+                        JP_PARSE_STRUCT_DATA_CASE('l', long, numberWithLong)
+                        JP_PARSE_STRUCT_DATA_CASE('L', unsigned long, numberWithUnsignedLong)
+                        JP_PARSE_STRUCT_DATA_CASE('q', long long, numberWithLongLong)
+                        JP_PARSE_STRUCT_DATA_CASE('Q', unsigned long long, numberWithUnsignedLongLong)
+                        JP_PARSE_STRUCT_DATA_CASE('f', float, numberWithFloat)
+                        JP_PARSE_STRUCT_DATA_CASE('d', double, numberWithDouble)
+                        JP_PARSE_STRUCT_DATA_CASE('B', BOOL, numberWithBool)
+                        JP_PARSE_STRUCT_DATA_CASE('N', NSInteger, numberWithInteger)
+                        JP_PARSE_STRUCT_DATA_CASE('U', NSUInteger, numberWithUnsignedInteger)
+
+                        default:
+                            break;
+                    }
+                    index ++;
+                }
+                param = structDict;
             }
-            JP_BLOCK_PARAM_CASE('c', char, numberWithChar)
-            JP_BLOCK_PARAM_CASE('C', unsigned char, numberWithUnsignedChar)
-            JP_BLOCK_PARAM_CASE('s', short, numberWithShort)
-            JP_BLOCK_PARAM_CASE('S', unsigned short, numberWithUnsignedShort)
-            JP_BLOCK_PARAM_CASE('i', int, numberWithInt)
-            JP_BLOCK_PARAM_CASE('I', unsigned int, numberWithUnsignedInt)
-            JP_BLOCK_PARAM_CASE('l', long, numberWithLong)
-            JP_BLOCK_PARAM_CASE('L', unsigned long, numberWithUnsignedLong)
-            JP_BLOCK_PARAM_CASE('q', long long, numberWithLongLong)
-            JP_BLOCK_PARAM_CASE('Q', unsigned long long, numberWithUnsignedLongLong)
-            JP_BLOCK_PARAM_CASE('f', float, numberWithFloat)
-            JP_BLOCK_PARAM_CASE('d', double, numberWithDouble)
-            JP_BLOCK_PARAM_CASE('B', BOOL, numberWithBool)
-                
-            case '@': {
-                param = (__bridge id)(*(void**)argumentPtr);
-                break;
-            }
+        } else if ([type isEqualToString:@"id"]) {
+            param = (__bridge id)(*(void**)argumentPtr);
+        } else if ([type isEqualToString:@"@"]) {
+            param = (__bridge id)(*(void**)argumentPtr);
+        } else if ([type hasSuffix:@"*"]) {
+            param = (__bridge id)(*(void**)argumentPtr);
         }
+        #define JP_BLOCK_PARAM_IF(_type, _selector) \
+            else if ([type isEqualToString:@#_type]) { \
+                _type val = *(_type *)argumentPtr; \
+                param = [NSNumber _selector:val]; \
+            }
+            JP_BLOCK_PARAM_IF(char, numberWithChar)
+            JP_BLOCK_PARAM_IF(unsigned char, numberWithUnsignedChar)
+            JP_BLOCK_PARAM_IF(short, numberWithShort)
+            JP_BLOCK_PARAM_IF(unsigned short, numberWithUnsignedShort)
+            JP_BLOCK_PARAM_IF(int, numberWithInt)
+            JP_BLOCK_PARAM_IF(unsigned int, numberWithUnsignedInt)
+            JP_BLOCK_PARAM_IF(long, numberWithLong)
+            JP_BLOCK_PARAM_IF(unsigned long, numberWithUnsignedLong)
+            JP_BLOCK_PARAM_IF(long long, numberWithLongLong)
+            JP_BLOCK_PARAM_IF(unsigned long long, numberWithUnsignedLongLong)
+            JP_BLOCK_PARAM_IF(float, numberWithFloat)
+            JP_BLOCK_PARAM_IF(double, numberWithDouble)
+            JP_BLOCK_PARAM_IF(BOOL, numberWithBool)
+            JP_BLOCK_PARAM_IF(NSInteger, numberWithInteger)
+            JP_BLOCK_PARAM_IF(NSUInteger, numberWithUnsignedInteger)
+
         [params addObject:[JPExtension formatOCToJS:param]];
     }
     
@@ -176,9 +229,17 @@ void JPBlockInterpreter(ffi_cif *cif, void *ret, void **args, void *userdata)
     
     _generatedPtr = YES;
     
-    ffi_type *returnType = [JPMethodSignature ffiTypeWithEncodingChar:[self.signature.returnType UTF8String]];
+    NSString *types = self.signature.typeNames;
+    NSMutableArray<NSString *> *funcArgTypes = [types componentsSeparatedByString:@","].mutableCopy;
+    for (NSInteger i=0; i<funcArgTypes.count; i++) {
+        funcArgTypes[i] = [funcArgTypes[i] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    }
+    NSString *returnType = funcArgTypes[0];
+
+    ffi_type *returnFfiType = malloc(sizeof(ffi_type *));
+    ConvertObjCTypeToFFIType(returnType, &returnFfiType);
     
-    NSUInteger argumentCount = self.signature.argumentTypes.count;
+    NSUInteger argumentCount = funcArgTypes.count;
     
     _cifPtr = malloc(sizeof(ffi_cif));
     
@@ -187,13 +248,14 @@ void JPBlockInterpreter(ffi_cif *cif, void *ret, void **args, void *userdata)
     _args = malloc(sizeof(ffi_type *) *argumentCount) ;
     
     for (int i = 0; i < argumentCount; i++){
-        ffi_type* current_ffi_type = [JPMethodSignature ffiTypeWithEncodingChar:[self.signature.argumentTypes[i] UTF8String]];
+        ffi_type* current_ffi_type = malloc(sizeof(ffi_type *));
+        ConvertObjCTypeToFFIType(funcArgTypes[i], &current_ffi_type);
         _args[i] = current_ffi_type;
     }
     
     _closure = ffi_closure_alloc(sizeof(ffi_closure), (void **)&blockImp);
     
-    if(ffi_prep_cif(_cifPtr, FFI_DEFAULT_ABI, (unsigned int)argumentCount, returnType, _args) == FFI_OK) {
+    if(ffi_prep_cif(_cifPtr, FFI_DEFAULT_ABI, (unsigned int)argumentCount, returnFfiType, _args) == FFI_OK) {
         if (ffi_prep_closure_loc(_closure, _cifPtr, JPBlockInterpreter, (__bridge void *)self, blockImp) != FFI_OK) {
             NSAssert(NO, @"generate block error");
         }
