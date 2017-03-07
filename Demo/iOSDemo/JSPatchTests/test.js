@@ -432,7 +432,7 @@ require('JPEngine').defineStruct({
   var blk  = obj.funcGenerateBlock()
   var str1 = blk(obj.funcReturnNil())
   var str2 = blk(null)
-  var str3 = obj.excuteBlockWithNilParameters(block("NSError *", blk))
+  var str3 = obj.excuteBlockWithNilParameters(block("NSString *, NSError *", blk))
   if (str1.toJS() == "no error" && str2.toJS() == "no error" && str3.toJS() == "no error") {
     obj.setFuncTestNilParametersInBlockPassed(true)
   }

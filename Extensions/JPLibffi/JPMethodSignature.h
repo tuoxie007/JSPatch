@@ -26,6 +26,6 @@
 @end
 
 extern void ConvertObjCTypeToFFIType(NSString *objcType, ffi_type **ffiType);
-extern void ConvertObjCValueToFFIValue(NSString *objcType, id objcVal, void **ffiVal);
+extern void ConvertObjCValueToFFIValue(NSString *objcType, id objcVal, void *ffiVal);
 extern id ConvertFFIValueToObjCValue(void *ffiVal, NSString *objcType);
 

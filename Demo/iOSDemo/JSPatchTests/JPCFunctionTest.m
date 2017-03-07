@@ -13,7 +13,7 @@
 static bool voidFuncRet = false;
 
 id cfuncWithStructPadding(NSString *str, JPStructPadding strt){
-    NSLog(@"JPStructPacking: %c, %d", strt.ch, strt.num);
+    NSLog(@"JPStructPadding: %c, %d", strt.ch, strt.num);
     return str;
 }
 

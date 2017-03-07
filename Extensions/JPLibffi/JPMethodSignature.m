@@ -136,6 +136,8 @@
         *ffiType = &ffi_type_slong;
     } else if ([objcType isEqualToString:@"ulong"]) {
         *ffiType = &ffi_type_ulong;
+    } else if ([objcType isEqualToString:@"size_t"]) {
+        *ffiType = &ffi_type_ulong;
     } else if ([objcType isEqualToString:@"float"]) {
         *ffiType = &ffi_type_float;
     } else if ([objcType isEqualToString:@"double"]) {
@@ -167,6 +169,8 @@
 
     // pointer
     else if ([objcType isEqualToString:@"id"]) {
+        *ffiType = &ffi_type_pointer;
+    } else if ([objcType isEqualToString:@"Class"]) {
         *ffiType = &ffi_type_pointer;
     } else if ([objcType isEqualToString:@"@"]) {
         *ffiType = &ffi_type_pointer;
@@ -374,6 +378,8 @@ void ConvertObjCTypeToFFIType(NSString *objcType, ffi_type **ffiType)
         *ffiType = &ffi_type_slong;
     } else if ([objcType isEqualToString:@"ulong"]) {
         *ffiType = &ffi_type_ulong;
+    } else if ([objcType isEqualToString:@"size_t"]) {
+        *ffiType = &ffi_type_ulong;
     } else if ([objcType isEqualToString:@"float"]) {
         *ffiType = &ffi_type_float;
     } else if ([objcType isEqualToString:@"double"]) {
@@ -389,7 +395,7 @@ void ConvertObjCTypeToFFIType(NSString *objcType, ffi_type **ffiType)
     } else if ([objcType isEqualToString:@"void"]) {
         *ffiType = &ffi_type_void;
     }
-    
+
     // cocoa types
     else if ([objcType isEqualToString:@"CGFloat"]) {
         if (CGFLOAT_IS_DOUBLE) {
@@ -401,12 +407,26 @@ void ConvertObjCTypeToFFIType(NSString *objcType, ffi_type **ffiType)
         *ffiType = &ffi_type_sint64;
     } else if ([objcType isEqualToString:@"NSUInteger"]) {
         *ffiType = &ffi_type_uint64;
+    } else if ([objcType isEqualToString:@"BOOL"]) {
+        *ffiType = &ffi_type_schar;
+    } else if ([objcType isEqualToString:@"bool"]) {
+        *ffiType = &ffi_type_schar;
     }
 
     // pointer
     else if ([objcType isEqualToString:@"id"]) {
         *ffiType = &ffi_type_pointer;
     } else if ([objcType isEqualToString:@"@"]) {
+        *ffiType = &ffi_type_pointer;
+    } else if ([objcType isEqualToString:@"Class"]) {
+        *ffiType = &ffi_type_pointer;
+    } else if ([objcType isEqualToString:@"SEL"]) {
+        *ffiType = &ffi_type_pointer;
+    } else if ([objcType isEqualToString:@"void *"] || [objcType isEqualToString:@"void*"]) {
+        *ffiType = &ffi_type_pointer;
+    } else if ([objcType isEqualToString:@"block"]) {
+        *ffiType = &ffi_type_pointer;
+    } else if ([objcType isEqualToString:@"id*"]) {
         *ffiType = &ffi_type_pointer;
     } else if ([objcType hasSuffix:@"*"]) {
         *ffiType = &ffi_type_pointer;
@@ -467,74 +487,76 @@ break;
     }
 }
 
-void ConvertObjCValueToFFIValue(NSString *objcType, id objcVal, void **ffiVal)
+void ConvertObjCValueToFFIValue(NSString *objcType, id objcVal, void *ffiVal)
 {
-    if ([objcType isEqualToString:@"int"]) {
-        int val = [((NSNumber *)objcVal) intValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"uint"]) {
-        unsigned int val = [((NSNumber *)objcVal) unsignedIntValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"long"]) {
-        long val = [((NSNumber *)objcVal) longValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"ulong"]) {
-        unsigned long val = [((NSNumber *)objcVal) unsignedLongValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"float"]) {
-        float val = [((NSNumber *)objcVal) floatValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"double"]) {
-        double val = [((NSNumber *)objcVal) doubleValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"char"]) {
-        char val = [((NSNumber *)objcVal) charValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"uchar"]) {
-        unsigned char val = [((NSNumber *)objcVal) unsignedCharValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"short"]) {
-        short val = [((NSNumber *)objcVal) shortValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"ushort"]) {
-        unsigned short val = [((NSNumber *)objcVal) unsignedShortValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"long long"]) {
-        long long val = [((NSNumber *)objcVal) longLongValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"unsigned long long"]) {
-        unsigned long long val = [((NSNumber *)objcVal) unsignedLongLongValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"CGFloat"]) {
-        if (CGFLOAT_IS_DOUBLE) {
-            CGFloat val = [((NSNumber *)objcVal) doubleValue];
-            *ffiVal = &val;
-        } else {
-            CGFloat val = [((NSNumber *)objcVal) floatValue];
-            *ffiVal = &val;
+    if ([objcVal isKindOfClass:[JSValue class]]) {
+        if ([objcType isEqualToString:@"id"] || [objcType hasSuffix:@"*"]) {
+            if ([objcVal isKindOfClass:[JSValue class]]) {
+                id retObj = [JPExtension formatJSToOC:objcVal];
+                void **ptr = ffiVal;
+                *ptr = (__bridge void *)retObj;
+            } else {
+                void **ptr = ffiVal;
+                *ptr = (__bridge void *)(objcVal);
+            }
+            return;
         }
-    } else if ([objcType isEqualToString:@"NSInteger"]) {
-        NSInteger val = [((NSNumber *)objcVal) integerValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"NSUInteger"]) {
-        NSUInteger val = [((NSNumber *)objcVal) unsignedIntegerValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"BOOL"]) {
-        BOOL val = [((NSNumber *)objcVal) boolValue];
-        *ffiVal = &val;
-    } else if ([objcType isEqualToString:@"id"]) {
-        void **ptr = *ffiVal;
+        objcVal = [objcVal toObject];
+    }
+#define JP_CONVERT_VALUE_IF(_type, _selector) \
+    if ([objcType isEqualToString:@#_type]) { \
+        _type val = [((NSNumber *)objcVal) _selector]; \
+        _type *ffiValPtr = (_type *)ffiVal; \
+        *ffiValPtr = val; \
+        return;\
+    }
+    
+#define JP_CONVERT_VALUE_IF2(_typeAlias, _type, _selector) \
+    if ([objcType isEqualToString:@#_typeAlias]) { \
+        _type val = [((NSNumber *)objcVal) _selector]; \
+        _type *ffiValPtr = (_type *)ffiVal; \
+        *ffiValPtr = val; \
+        return;\
+    }
+    JP_CONVERT_VALUE_IF(int, intValue);
+    JP_CONVERT_VALUE_IF(uint, unsignedIntValue);
+    JP_CONVERT_VALUE_IF(long, longValue);
+    JP_CONVERT_VALUE_IF2(ulong, unsigned long, unsignedLongValue);
+    JP_CONVERT_VALUE_IF(size_t, unsignedLongValue);
+    JP_CONVERT_VALUE_IF(float, floatValue);
+    JP_CONVERT_VALUE_IF(double, doubleValue);
+    JP_CONVERT_VALUE_IF(char, charValue);
+    JP_CONVERT_VALUE_IF2(uchar, unsigned char, unsignedCharValue);
+    JP_CONVERT_VALUE_IF(short, shortValue);
+    JP_CONVERT_VALUE_IF2(ushort, unsigned short, unsignedShortValue);
+    JP_CONVERT_VALUE_IF(long long, longLongValue);
+    JP_CONVERT_VALUE_IF(unsigned long long, unsignedLongLongValue);
+    JP_CONVERT_VALUE_IF(NSInteger, integerValue);
+    JP_CONVERT_VALUE_IF(NSUInteger, unsignedIntegerValue);
+    JP_CONVERT_VALUE_IF(BOOL, boolValue);
+    JP_CONVERT_VALUE_IF(double, doubleValue);
+    if (CGFLOAT_IS_DOUBLE) {
+        JP_CONVERT_VALUE_IF(CGFloat, doubleValue);
+    } else {
+        JP_CONVERT_VALUE_IF(CGFloat, floatValue);
+    }
+    if ([objcType isEqualToString:@"void *"] || [objcType isEqualToString:@"void*"]) {
+        void **ptr = ffiVal;
+        *ptr = [((JPBoxing *)objcVal) unboxPointer];
+        return;
+    }
+    if ([objcType isEqualToString:@"id"] || [objcType hasSuffix:@"*"] || [objcType isEqualToString:@"Class"]) {
+        void **ptr = ffiVal;
         *ptr = (__bridge void *)(objcVal);
-    } else if ([objcType hasSuffix:@"*"]) {
-        void **ptr = *ffiVal;
-        *ptr = (__bridge void *)(objcVal);
-    } else if ([objcType hasPrefix:@"{"] && [objcType hasSuffix:@"}"]) {
+        return;
+    }
+    if ([objcType hasPrefix:@"{"] && [objcType hasSuffix:@"}"]) {
         NSDictionary *registedStruct = [JPExtension registeredStruct];
         NSString *structName = [objcType substringWithRange:NSMakeRange(1, objcType.length - 2)];
         NSDictionary *structDefine = registedStruct[structName];
-        size_t size = [JPExtension sizeOfStructDefine:structDefine];
-        *ffiVal = malloc(size);
-        [JPExtension getStructDataWidthDict:*ffiVal dict:objcVal structDefine:structDefine];
+        void **ptr = ffiVal;
+        [JPExtension getStructDataWidthDict:ptr dict:objcVal structDefine:structDefine];
+        return;
     }
 }
 
@@ -550,6 +572,9 @@ id ConvertFFIValueToObjCValue(void *ffiVal, NSString *objcType)
         long val = *(long *)ffiVal;
         return [NSNumber numberWithLong:val];
     } else if ([objcType isEqualToString:@"ulong"]) {
+        unsigned long val = *(unsigned long *)ffiVal;
+        return [NSNumber numberWithUnsignedLong:val];
+    } else if ([objcType isEqualToString:@"size_t"]) {
         unsigned long val = *(unsigned long *)ffiVal;
         return [NSNumber numberWithUnsignedLong:val];
     } else if ([objcType isEqualToString:@"float"]) {
@@ -588,14 +613,65 @@ id ConvertFFIValueToObjCValue(void *ffiVal, NSString *objcType)
     } else if ([objcType isEqualToString:@"BOOL"]) {
         BOOL val = *(BOOL *)ffiVal;
         return [NSNumber numberWithBool:val];
+    } else if ([objcType isEqualToString:@"bool"]) {
+        BOOL val = *(BOOL *)ffiVal;
+        return [NSNumber numberWithBool:val];
+    } else if ([objcType isEqualToString:@"void*"] || [objcType isEqualToString:@"void *"]) {
+        JPBoxing *box = [[JPBoxing alloc] init];
+        box.pointer = (*(void**)ffiVal);
+        return box;
     } else if ([objcType isEqualToString:@"id"]) {
+        return (__bridge id)(*(void **)ffiVal);
+    } else if ([objcType isEqualToString:@"Class"]) {
         return (__bridge id)(*(void **)ffiVal);
     } else if ([objcType hasSuffix:@"*"]) {
         return (__bridge id)(*(void **)ffiVal);
     } else if ([objcType hasPrefix:@"{"] && [objcType hasSuffix:@"}"]) {
-        JPBoxing *box = [[JPBoxing alloc] init];
-        box.pointer = (*(void **)ffiVal);
-        return box;
+        // struct
+        NSString *structName = [objcType substringWithRange:NSMakeRange(1, objcType.length-2)];
+        NSDictionary *structDefine = [JPExtension registeredStruct][structName];
+        if (structDefine) {
+            NSMutableDictionary *structDict = @{}.mutableCopy;
+            NSString *structTypesStr = structDefine[@"types"];
+            NSArray *structTypeKeys = structDefine[@"keys"];
+            const char *typeCodes = [structTypesStr cStringUsingEncoding:NSASCIIStringEncoding];
+            NSUInteger index = 0;
+            NSUInteger position = 0;
+            NSUInteger alignment = [structDefine[@"alignment"] unsignedIntegerValue];
+            while (typeCodes[index]) {
+                switch (typeCodes[index]) {
+                    #define JP_PARSE_STRUCT_DATA_CASE(_encode, _type, _selector) \
+                        case _encode: { \
+                        size_t size = sizeof(_type); \
+                        _type *val = malloc(size); \
+                        memcpy(val, ffiVal+position, size); \
+                        position += alignment ?: size; \
+                        structDict[structTypeKeys[index]] = [NSNumber _selector:*val]; \
+                        break; \
+                        }
+                        JP_PARSE_STRUCT_DATA_CASE('c', char, numberWithChar)
+                        JP_PARSE_STRUCT_DATA_CASE('C', unsigned char, numberWithUnsignedChar)
+                        JP_PARSE_STRUCT_DATA_CASE('s', short, numberWithShort)
+                        JP_PARSE_STRUCT_DATA_CASE('S', unsigned short, numberWithUnsignedShort)
+                        JP_PARSE_STRUCT_DATA_CASE('i', int, numberWithInt)
+                        JP_PARSE_STRUCT_DATA_CASE('I', unsigned int, numberWithUnsignedInt)
+                        JP_PARSE_STRUCT_DATA_CASE('l', long, numberWithLong)
+                        JP_PARSE_STRUCT_DATA_CASE('L', unsigned long, numberWithUnsignedLong)
+                        JP_PARSE_STRUCT_DATA_CASE('q', long long, numberWithLongLong)
+                        JP_PARSE_STRUCT_DATA_CASE('Q', unsigned long long, numberWithUnsignedLongLong)
+                        JP_PARSE_STRUCT_DATA_CASE('f', float, numberWithFloat)
+                        JP_PARSE_STRUCT_DATA_CASE('d', double, numberWithDouble)
+                        JP_PARSE_STRUCT_DATA_CASE('B', BOOL, numberWithBool)
+                        JP_PARSE_STRUCT_DATA_CASE('N', NSInteger, numberWithInteger)
+                        JP_PARSE_STRUCT_DATA_CASE('U', NSUInteger, numberWithUnsignedInteger)
+                        
+                    default:
+                        break;
+                }
+                index ++;
+            }
+            return structDict;
+        }
     }
     return nil;
 }

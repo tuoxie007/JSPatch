@@ -193,6 +193,12 @@ typedef id (^JPTestObjectBlock)(NSDictionary *dict, UIView *view);
     return jsblock;
 }
 
+- (void)callBlockWithReturnStruct:(JPStructPadding(^)(NSString *str))block
+{
+    JPStructPadding ret = block(@"stringFromOC");
+    NSLog(@"callBlockWithReturnStruct: %c, %d", ret.ch, ret.num);
+}
+
 - (void)callBlockWithStringAndStruct:(id(^)(NSString *str, JPStructPadding strt))block
 {
     JPStructPadding strt;

@@ -58,7 +58,7 @@ static NSMutableDictionary *_funcDefines;
     if (!functionPtr) {
         return nil;
     }
-    
+
     NSMutableArray *argumentTypes = [_funcDefines objectForKey:funcName];
     NSString *returnType = argumentTypes.firstObject;
     [argumentTypes removeObjectAtIndex:0];
@@ -66,7 +66,7 @@ static NSMutableDictionary *_funcDefines;
     if (argCount != [arguments count]) {
         return nil;
     }
-    
+
     ffi_type *ffiArgTypes[argCount + 1];
     void *ffiArgs[argCount];
     for (int i = 0; i < argCount; i ++) {
@@ -75,7 +75,7 @@ static NSMutableDictionary *_funcDefines;
         ffi_type *ffiType = malloc(sizeof(ffi_type *));
         ConvertObjCTypeToFFIType(argType, &ffiType);
         ffiArgTypes[i] = ffiType;
-        
+
         size_t typeSize = ffiType->size;
         if (typeSize == 0 && ffiType->elements != NULL) {
             int idx = 0;
@@ -87,7 +87,7 @@ static NSMutableDictionary *_funcDefines;
 
         // convert value
         void *ffiArgPtr = alloca(typeSize);
-        ConvertObjCValueToFFIValue(argType, arguments[i], &ffiArgPtr);
+        ConvertObjCValueToFFIValue(argType, arguments[i], ffiArgPtr);
         ffiArgs[i] = ffiArgPtr;
     }
     ffiArgTypes[argCount] = NULL;
