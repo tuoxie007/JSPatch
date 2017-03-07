@@ -25,6 +25,8 @@ typedef struct JPStructPacking JPStructPacking;
 id cfuncWithStructPacking(NSString *str, JPStructPacking strt);
 
 @interface JPCFunctionTest : NSObject
++ (BOOL)testCfuncReturnStructPadding;
++ (BOOL)testCfuncWithStructPadding;
 + (BOOL)testCfuncWithId;
 + (BOOL)testCfuncWithInt;
 + (BOOL)testCfuncWithCGFloat;

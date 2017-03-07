@@ -196,7 +196,7 @@ typedef id (^JPTestObjectBlock)(NSDictionary *dict, UIView *view);
 - (void)callBlockWithReturnStruct:(JPStructPadding(^)(NSString *str))block
 {
     JPStructPadding ret = block(@"stringFromOC");
-    NSLog(@"callBlockWithReturnStruct: %c, %d", ret.ch, ret.num);
+    self.callBlockWithReturnStruct = ret.ch == 'X' && ret.num == 233;
 }
 
 - (void)callBlockWithStringAndStruct:(id(^)(NSString *str, JPStructPadding strt))block
@@ -205,7 +205,7 @@ typedef id (^JPTestObjectBlock)(NSDictionary *dict, UIView *view);
     strt.ch = 'X';
     strt.num = 233;
     id ret = block(@"stringFromOC", strt);
-    self.callBlockWithStringAndIntReturnValuePassed = [ret isEqualToString:@"succ"];
+    self.callBlockWithStringAndStruct = [ret isEqualToString:@"succ"];
 }
 
 - (void)callBlockWithStringAndInt:(id(^)(NSString *str, int num))block

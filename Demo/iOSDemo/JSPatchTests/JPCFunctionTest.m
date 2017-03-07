@@ -13,8 +13,14 @@
 static bool voidFuncRet = false;
 
 id cfuncWithStructPadding(NSString *str, JPStructPadding strt){
-    NSLog(@"JPStructPadding: %c, %d", strt.ch, strt.num);
-    return str;
+    return [NSString stringWithFormat:@"%@, %c, %d", str, strt.ch, strt.num];
+}
+
+JPStructPadding cfuncReturnStructPadding(){
+    JPStructPadding ret;
+    ret.ch = 'X';
+    ret.num = 233;
+    return ret;
 }
 
 id cfuncWithStructPacking(NSString *str, JPStructPacking strt){
@@ -52,6 +58,12 @@ void cfuncVoid() {
 }
 
 @implementation JPCFunctionTest
++ (BOOL)testCfuncReturnStructPadding{
+    return NO;
+};
++ (BOOL)testCfuncWithStructPadding{
+    return NO;
+};
 + (BOOL)testCfuncWithId{
     return NO;
 };

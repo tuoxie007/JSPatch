@@ -52,6 +52,8 @@
 @property (nonatomic, assign) BOOL callBlockWithObjectAndBlockPassed;
 @property (nonatomic, assign) BOOL callBlockWithObjectAndBlockReturnValuePassed;
 @property (nonatomic, assign) BOOL callBlockWithDoubleAndReturnDoublePassed;
+@property (nonatomic, assign) BOOL callBlockWithReturnStruct;
+@property (nonatomic, assign) BOOL callBlockWithStringAndStruct;
 
 
 @property (nonatomic, assign) BOOL funcToSwizzleWithStringViewIntPassed;

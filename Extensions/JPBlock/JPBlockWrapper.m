@@ -135,7 +135,7 @@ void JPBlockInterpreter(ffi_cif *cif, void *ret, void **args, void *userdata)
 
     void *blockImp = NULL;
 
-    _args = malloc(sizeof(ffi_type *) *argumentCount) ;
+    _args = malloc(sizeof(ffi_type *) *argumentCount);
 
     for (int i = 0; i < argumentCount; i++){
         ffi_type* current_ffi_type = malloc(sizeof(ffi_type *));

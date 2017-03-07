@@ -272,6 +272,15 @@ require('JPEngine').defineStruct({
   }))
   jsBlkRet('stringFromJS', 42);
     
+  obj.callBlockWithReturnStruct(block("{JPStructPadding}, NSString *", function(str, num) {
+    return {ch: 88, num: 233}
+  }))
+    
+  obj.callBlockWithStringAndStruct(block("id, NSString *, int", function(str, num) {
+    obj.setCallBlockWithStringAndIntPassed(str.toJS() == "stringFromOC" && num == 42)
+    return "succ"
+  }))
+    
   obj.callBlockWithStringAndInt(block("id, NSString *, int", function(str, num) {
     obj.setCallBlockWithStringAndIntPassed(str.toJS() == "stringFromOC" && num == 42)
     return "succ"

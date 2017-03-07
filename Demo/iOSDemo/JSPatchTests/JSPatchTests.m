@@ -96,6 +96,8 @@
     XCTAssert(obj.callBlockWithObjectAndBlockPassed, @"callBlockWithObjectAndBlockPassed");
     XCTAssert(obj.callBlockWithObjectAndBlockReturnValuePassed, @"callBlockWithObjectAndBlockReturnValuePassed");
     XCTAssert(obj.callBlockWithDoubleAndReturnDoublePassed, @"callBlockWithDoubleAndReturnDoublePassed");
+    XCTAssert(obj.callBlockWithReturnStruct, @"callBlockWithReturnStruct");
+    XCTAssert(obj.callBlockWithStringAndStruct, @"callBlockWithStringAndStruct");
     
     
     XCTAssert(obj.funcToSwizzleWithStringViewIntPassed, @"funcToSwizzleWithStringViewIntPassed");
@@ -286,6 +288,8 @@
 - (void)testCFunction
 {
     [self loadPatch:@"jsCFunctionTest"];
+    XCTAssert([JPCFunctionTest testCfuncReturnStructPadding], @"testCfuncReturnStructPadding");
+    XCTAssert([JPCFunctionTest testCfuncWithStructPadding], @"testCfuncWithStructPadding");
     XCTAssert([JPCFunctionTest testCfuncWithId], @"testCfuncWithId");
     XCTAssert([JPCFunctionTest testCfuncWithInt], @"testCfuncWithInt");
     XCTAssert([JPCFunctionTest testCfuncWithCGFloat], @"testCfuncWithCGFloat");

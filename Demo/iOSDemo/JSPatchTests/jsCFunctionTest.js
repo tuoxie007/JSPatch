@@ -1,6 +1,22 @@
 require('JPEngine').addExtensions(['JPCFunction'])
+require('JPEngine').addExtensions(['JPBlock'])
+JPEngine.defineStruct({
+    "name": "JPStructPadding",
+    "types": "ci",
+    "keys": ["ch", "num"]
+})
 
 defineClass('JPCFunctionTest', {}, {
+    testCfuncReturnStructPadding: function() {
+        defineCFunction("cfuncReturnStructPadding", "{JPStructPadding}")
+        var ret = cfuncReturnStructPadding();
+        return ret.objectForKey("num") == 233;
+    },
+    testCfuncWithStructPadding: function() {
+        defineCFunction("cfuncWithStructPadding", "id, NSString *, {JPStructPadding}")
+        var ret = cfuncWithStructPadding("JSPatch", {ch:88, num: 233});
+        return ret.toJS() == "JSPatch, X, 233";
+    },
     testCfuncWithId: function() {
         defineCFunction("cfuncWithId", "id, NSString *")
         var ret = cfuncWithId("JSPatch");
